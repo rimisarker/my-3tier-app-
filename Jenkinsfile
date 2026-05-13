@@ -1,7 +1,9 @@
 pipeline {
+    /* Use your specific slave agent label */
     agent { label 'docker-agent' } 
 
     environment {
+        /* Correct environment variables for your 3-tier app */
         MYSQL_ROOT_PASSWORD = 'admin123'
         MYSQL_DATABASE      = 'students_db'
         DB_USER             = 'root'
@@ -11,21 +13,21 @@ pipeline {
         stage('Ultimate Deploy') {
             steps {
                 script {
-                    // ১. পারমিশন ঠিক করা
+                    // ১. ডকার সকেট পারমিশন ঠিক করা
                     sh 'sudo chmod 666 /var/run/docker.sock || true'
 
-                    // ২. প্রমিথিউস কনফিগারেশন ফাইলটি সরাসরি কন্টেইনারের ভেতরে ইনজেক্ট করা
-                    // আমরা হোস্ট মাউন্ট বাদ দিয়ে কন্টেইনারের কমান্ড লাইন ব্যবহার করছি
+                    // ২. পুরানো কন্টেইনার মুছে ফেলা
                     sh 'docker-compose down || true'
                     
-                    // ৩. নতুন ইমেজ বিল্ড এবং ডেপ্লয়
-                    // লক্ষ্য করুন: আমরা ভলিউম মাউন্ট ছাড়াই প্রমিথিউস রান করছি
+                    // ৩. নতুন করে কন্টেইনার আপ করা (ভলিউম মাউন্ট ছাড়াই)
+                    // মনে রাখবেন: আপনার docker-compose.yml থেকে prometheus-এর volumes অংশটি মুছে ফেলেছেন তো?
                     sh 'docker-compose up -d --build'
 
-                    // ৪. প্রমিথিউস কন্টেইনারের ভেতর কনফিগারেশন ফাইলটি জোর করে কপি করে দেওয়া
-                    // এটিই আসল সমাধান। হোস্ট ফাইলের ঝামেলা শেষ।
+                    // ৪. WSL এর মাউন্টিং এরর এড়াতে সরাসরি কন্টেইনারের ভেতর ফাইল ইনজেক্ট করা
+                    // এখানে 'docker' কমান্ডের বদলে 'docker-compose exec' ব্যবহার করা হয়েছে
                     sh '''
-                        echo "global:
+                        docker-compose exec -T prometheus sh -c "cat <<EOF > /etc/prometheus/prometheus.yml
+global:
   scrape_interval: 15s
 scrape_configs:
   - job_name: 'prometheus'
@@ -39,16 +41,27 @@ scrape_configs:
       - targets: ['node-exporter:9100']
   - job_name: 'students-app'
     static_configs:
-      - targets: ['student-backend:5000']" > temp_prom.yml
-                        
-                        docker cp temp_prom.yml prometheus:/etc/prometheus/prometheus.yml
-                        docker restart prometheus
-                        rm temp_prom.yml
+      - targets: ['student-backend:5000']
+EOF"
+                        # নতুন কনফিগারেশন কার্যকর করার জন্য প্রমিথিউস রিস্টার্ট
+                        docker-compose restart prometheus
                     '''
 
-                    echo "Deployment Successful without Mount Issues!"
+                    echo "Congratulations! Deployment Successful on WSL without Mount Issues."
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline execution finished."
+        }
+        success {
+            echo "Hurrah! Everything is live and monitoring is configured."
+        }
+        failure {
+            echo "Deployment failed. Please check the logs."
         }
     }
 }

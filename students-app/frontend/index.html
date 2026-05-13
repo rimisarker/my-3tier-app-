@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h2>Student Attendance (DevOps Project)</h2>
+    <div id="data"></div>
+    <script>
+        const load = () => {
+            fetch('http://localhost:5000/api/students')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('data').innerHTML = data.map(s => 
+                    `<li>${s.name} - Absents: ${s.absent_count} 
+                    <button onclick="mark(${s.id})">Mark Absent</button></li>`
+                ).join('');
+            });
+        }
+        const mark = (id) => {
+            fetch(`http://localhost:5000/api/absent/${id}`, {method:'POST'}).then(load);
+        }
+        load();
+    </script>
+</body>
+</html>

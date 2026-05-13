@@ -13,19 +13,43 @@ pipeline {
         stage('Fixing Mount & Deploy') {
             steps {
                 script {
-                    // 1. Fix Docker socket permissions and ownership
+                    // 1. Fix Docker socket permissions
                     sh 'sudo chmod 666 /var/run/docker.sock || true'
 
-                    // 2. Fix the "Not a Directory" error for Prometheus
-                    // It removes the wrong folder and ensures it stays as a file
+                    // 2. FORCE RECREATE PROMETHEUS FILE (The Ultimate Fix)
+                    // This creates the file directly to avoid "Not a Directory" error
                     sh '''
-                        if [ -d "monitoring/prometheus.yml" ]; then
-                            echo "Deleting incorrect directory created by Docker mount..."
-                            rm -rf monitoring/prometheus.yml
-                        fi
-                        # Ensure the directory exists and set file permissions
+                        # Remove if any wrong directory exists
+                        rm -rf monitoring/prometheus.yml
+                        
+                        # Ensure monitoring folder exists
                         mkdir -p monitoring
-                        chmod 644 monitoring/prometheus.yml || true
+                        
+                        # Create the prometheus.yml file with correct configuration
+                        cat <<EOF > monitoring/prometheus.yml
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  - job_name: 'students-app'
+    static_configs:
+      - targets: ['student-backend:5000']
+EOF
+                        # Set permissions so Docker can read the file
+                        chmod 644 monitoring/prometheus.yml
                     '''
 
                     // 3. Cleanup existing containers to avoid conflicts

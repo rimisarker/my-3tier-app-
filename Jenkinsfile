@@ -1,26 +1,36 @@
 pipeline {
-    agent any
+    /* 'any' এর বদলে আপনার তৈরি করা স্লেভ লেবেলটি ব্যবহার করা হচ্ছে */
+    agent { label 'docker-agent' } 
+
+    environment {
+        /* আপনার .env ফাইলের ভেরিয়েবলগুলো এখানে যোগ করা হয়েছে */
+        MYSQL_ROOT_PASSWORD = 'admin123'
+        MYSQL_DATABASE      = 'students_db'
+        DB_USER             = 'root'
+    }
 
     stages {
         stage('Clean and Deploy') {
             steps {
                 script {
-                    // 1. Docker Hub theke latest image niye asha
+                    // ডকার সকেট পারমিশন ঠিক করা (যদি প্রয়োজন হয়)
+                    sh 'sudo chmod 666 /var/run/docker.sock || true'
+
+                    // ১. Docker Hub থেকে লেটেস্ট ইমেজ আনা
                     sh 'docker-compose pull'
-                    
-                    // 2. Jodi age theke kono container thake, sheta bondho kora
-                    // '|| true' deya hoyeche jate prothombat error na khay
+
+                    // ২. পুরানো কন্টেইনার ডিলিট করা
                     sh 'docker-compose down || true'
-                    
-                    // 3. Noutun image diye container up kora
+
+                    // ৩. নতুন ইমেজ দিয়ে কন্টেইনার আপ করা
                     sh 'docker-compose up -d'
-                    
+
                     echo "Deployment successful!"
                 }
             }
         }
     }
-    
+
     post {
         always {
             echo "Pipeline finish hoyeche."

@@ -33,7 +33,7 @@ Observability: Prometheus, Grafana, Node Exporter, cAdvisor
 ├── Jenkinsfile          # CD Pipeline script
 └── README.md
 
-⚙️ অবশ্যই! আপনি যেহেতু এখন GitHub Actions ব্যবহার করে CI (Continuous Integration) পার্টটুকু করছেন, তাই README ফাইলটি সেই অনুযায়ী আপডেট করা প্রয়োজন। নিচে একটি সহজবোধ্য এবং প্রফেশনাল ইংরেজি README ফাইল দেওয়া হলো যা যে কেউ দেখলে আপনার প্রজেক্টের গভীরতা বুঝতে পারবে।
+
 
 🎓 Student Management System: 3-Tier App with CI/CD & Monitoring
 This project demonstrates a fully automated CI/CD Pipeline for a 3-tier application (Frontend, Backend, and Database) using GitHub Actions for CI and Jenkins (on WSL) for CD. It also includes a robust monitoring stack using Prometheus and Grafana.
